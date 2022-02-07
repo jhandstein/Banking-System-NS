@@ -1,5 +1,0 @@
-
-
-This is a banking system for the game Newton Shift. The game focuses on Green Energy Transition and therefore the trading of energy, power plants and other properties is required. All the tradable objects and classes for storing them are contained in the file assets.py. Some of the asset features depend on enums, which are saved in enums.py. The different roles/player types are created in players.py and they pull the objects from assets.py. Built on these files you have transactions.py, which focuses on how to trade assets between players.
-
-In the file gui_1.1.py, the current state of the graphical user interface is described. There, the rough layout can be seen and some functions, such as switching players and transfering money with no assets attached are already implemented. Further transaction types and formatting will be added soon.
