@@ -3,7 +3,6 @@ from enums import polishString
 from players import *
 
 
-
 # transaction base class
 class Transaction(ABC):
 
