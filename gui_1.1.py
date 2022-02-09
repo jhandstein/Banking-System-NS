@@ -19,6 +19,37 @@ def sortAssets(assetlist) -> list:
     fossil_assets.sort() 
     return green_assets + fossil_assets
 
+# refreshing the interface in case of player change or transaction taking place
+def refreshInterface(player):
+    for widget in frame_assets.winfo_children():
+        widget.destroy()
+
+    asset_section_label = tk.Label(frame_assets, text='Assets', font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
+    asset_section_label.grid(row=0, column=0, columnspan=4, pady=10)    
+
+    for idx, asset in enumerate(player.assets):
+        asset_label = AssetLabel(frame_assets, asset)
+        if idx < 4:
+            asset_label.placeElement(1, idx)
+        elif idx < 8:
+            asset_label.placeElement(2, idx-4)
+        else:
+            asset_label.placeElement(3, idx-8)
+
+    global power_section
+    for widget in power_section.frame.winfo_children():
+            widget.destroy()
+    
+    power_section = PowerSection(player)
+    power_section.placeElement()
+
+    global smart_section
+    for widget in smart_section.frame.winfo_children():
+            widget.destroy()
+    
+    smart_section = SmartAppSection(player)
+    smart_section.placeElement()
+
 class GameElement(ABC):
 
     @abstractmethod
@@ -37,14 +68,14 @@ name_to_player = {role: player for role, player in zip(player_roles, list_player
 
 class PlayerDropdown(GameElement):
 
-    def __init__(self, master, balance):
+    def __init__(self, master, balance) -> None:
         
         self.master = master
         self.balance = balance
         self.role_var = tk.StringVar()
         self.role_var.set('Player')
         self.role_options = [polishString(role.name)for role in Role]
-        self.dropdown = tk.OptionMenu(self.master, self.role_var, *self.role_options, command=lambda x: self.changePlayer(self.balance, frame_assets))    
+        self.dropdown = tk.OptionMenu(self.master, self.role_var, *self.role_options, command=lambda x: self.changePlayer(self.balance))    
         # https://stackoverflow.com/questions/55621073/add-a-separator-to-an-option-menu-in-python-with-tkinter
         # seperates different playertypes
         self.dropdown['menu'].insert_separator(1)
@@ -54,38 +85,11 @@ class PlayerDropdown(GameElement):
         self.formatElement()
 
     # has become very crowded and will be re-structured in a future version
-    def changePlayer(self, balance_element, asset_frame):
+    def changePlayer(self, balance_element):
         player_role = self.role_var.get() 
         selected_player = name_to_player[polishString(player_role, 'upper')]
 
-        for widget in frame_assets.winfo_children():
-                widget.destroy()
-
-        asset_section_label = tk.Label(frame_assets, text='Assets', font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
-        asset_section_label.grid(row=0, column=0, columnspan=4, pady=10)    
-
-        for idx, asset in enumerate(selected_player.assets):
-            asset_label = AssetLabel(frame_assets, asset)
-            if idx < 4:
-                asset_label.placeElement(1, idx)
-            elif idx < 8:
-                asset_label.placeElement(2, idx-4)
-            else:
-                asset_label.placeElement(3, idx-8)
-
-        global power_section
-        for widget in power_section.frame.winfo_children():
-                widget.destroy()
-        
-        power_section = PowerSection(selected_player)
-        power_section.placeElement()
-
-        global smart_section
-        for widget in smart_section.frame.winfo_children():
-                widget.destroy()
-        
-        smart_section = SmartAppSection(selected_player)
-        smart_section.placeElement()
+        refreshInterface(selected_player)
 
         new_balance = f'$ {str(selected_player.money)}' 
         balance_element.config(text=new_balance)
@@ -178,6 +182,9 @@ class BuyButton(GameElement):
 
         transaction = self.chooseTransactionType(transaction_volume, payer, receiver)       
         transaction.performTransaction(transaction.checkViability())
+
+        refreshInterface(payer)
+
         balance.amount.config(text=f'$ {str(payer.money)}')
         entrybox.amount.delete(0, tk.END)
 
@@ -218,7 +225,7 @@ class BuyButton(GameElement):
         self.buybutton.grid(row=6)
 
 
-class SpecialTransactionParameters():
+class SpecialTransactionParameters(GameElement):
 
     def __init__(self) -> None:
         self.master = frame_transactions
@@ -263,14 +270,14 @@ class AssetServiceDropdown(GameElement):
     def placeElement(self) -> None:
         self.dropdown.grid(row=1, column=2)  
 
-    def formatElement(self):
+    def formatElement(self) -> None:
         max_width = 15
         self.dropdown.config(width=max_width, bg='GREEN', fg='BLACK')
 
 # currently work in progress
 class PowerEntry(GameElement):
 
-    def __init__(self, master):
+    def __init__(self, master) -> None:
         self.master = master
         self.frame = tk.Frame(master)
         self.energy = tk.Entry(self.frame)
@@ -290,12 +297,12 @@ class PowerEntry(GameElement):
         self.widgets = self.boxes + [self.green_button, self.fossil_button]      
         self.formatElement()
 
-    def formatElement(self):
+    def formatElement(self) -> None:
         self.frame.config(highlightthickness=1, highlightcolor='red')
         for entry in self.boxes:
             entry.config(width=2, justify='center')
     
-    def placeElement(self):
+    def placeElement(self) -> None:
         self.frame.grid(row=1, column=0, columnspan=2, pady=5)
         self.energy.grid(row=0, column=0)
         self.heating.grid(row=0, column=1)
@@ -306,7 +313,7 @@ class PowerEntry(GameElement):
 
 class TransactionRadio(GameElement):
 
-    def __init__(self, master):
+    def __init__(self, master) -> None:
         self.master = master
         self.frame = tk.Frame(self.master, highlightbackground='blue', highlightthickness=2)
         self.label = tk.Label(self.frame, text='Transaction Type', borderwidth=1, relief='solid')
@@ -322,7 +329,7 @@ class TransactionRadio(GameElement):
             self.radios.append(radio)  
         self.formatElement()     
             
-    def placeElement(self):
+    def placeElement(self) -> None:
         self.frame.grid(row=10, padx=10, pady=5)
         self.label.grid(row=0, column=0, sticky='w')
 
@@ -331,11 +338,11 @@ class TransactionRadio(GameElement):
         for idx, radio in enumerate(self.radios[2:]):
             radio.grid(row=idx, column=1, sticky='w')
     
-    def formatElement(self):
+    def formatElement(self) -> None:
         for widget in self.frame.winfo_children():
             widget.config(padx=5, pady=2)
     
-def disableDistractions():
+def disableDistractions() -> None:
     if typeradio.type_var.get() == TransactionType.STANDARD.value:
         parameters.assets_services.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='disabled')
