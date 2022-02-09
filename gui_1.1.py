@@ -562,11 +562,17 @@ class QuitButton(GameElement):
 class AssetLabel(GameElement):
 
     def __init__(self, master, asset) -> None:
+        if len(asset.name) > 8:
+            text = asset.name
+            index = text.find(' ')
+            text = text[:index] + '\n' + text[index+1:]
+        else:
+            text = asset.name
 
         self.master = master
         self.asset = asset
         self.container = tk.Frame(self.master)
-        self.name_label =  tk.Label(self.container, text=self.asset.name)
+        self.name_label =  tk.Label(self.container, text=text)
         self.power_type = tk.Label(self.container, text=self.asset.power.subtype.name)
         self.power_values = tk.Label(self.container, text=f'{self.asset.power.values}')
         self.formatElement()
