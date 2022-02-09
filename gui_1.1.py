@@ -10,8 +10,7 @@ from transactions import *
 root = tk.Tk()
 root.title('Newton Shift - Home')
 root.configure(bg='light grey')
-
-    
+ 
 def sortAssets(assetlist) -> list:
     green_assets = [entry.name for entry in assetlist if entry.power.subtype == PowerType.GREEN]
     green_assets.sort()
