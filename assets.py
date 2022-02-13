@@ -68,10 +68,10 @@ class Service():
         self.power = power
         # Service.quant -= 1
 
-    def __repr__(self):
-        return f'Service("{self.name}", "{self.cost}", {self.adjust[0]}, {self.adjust[1]}, {self.adjust[2]})'
+    def __repr__(self) -> str:
+        return f'Service("{self.name}", "{self.cost}", {self.power.values[0]}, {self.power.values[1]}, {self.power.values[2]})'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.name} -- Cost: {self.cost} -- Changes: {self.power.values}'
 
 # similar to the PowerBank, this contains all information about Smart Applications for each player
@@ -97,7 +97,6 @@ class SmartAppsOverview():
             
         elif type_ == 'storage':
             self.storage += amount
-
 
 
 # creation of all assets
@@ -170,6 +169,11 @@ solarpv = Asset('Building Integrated PV', 900, Power(values=[6, 0, 0]), central=
 
 
 home_ins = Service('Home Insulation', 1000, Power(subtype=PowerType.DEMAND, values=[-4,-4,0]))
+app_lease = Service('Lease of Appliances', 2000, Power(subtype=PowerType.DEMAND, values=[-4,-4,0]))
+# placeholder cost for drone_delivery
+drone_delivery = Service('Drone Delivery', 1000, Power(subtype=PowerType.DEMAND, values=[6,0,-2]))
+electric_mob = Service('Electric Mobility', 2000, Power(subtype=PowerType.DEMAND, values=[5,0,-5]))
+business_eff = Service('Business Efficiency', 3000, Power(subtype=PowerType.DEMAND, values=[-4,-4,-4]))
 # print(home_ins)
 
 inventory = SmartAppsOverview()

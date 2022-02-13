@@ -2,6 +2,8 @@ import tkinter as tk
 from PIL import ImageTk, Image
 from abc import ABC, abstractmethod
 
+from pyparsing import col
+
 from enums import Role, TransactionType, polishString
 from assets import *
 from players import *
@@ -19,35 +21,46 @@ def sortAssets(assetlist) -> list:
     return green_assets + fossil_assets
 
 # refreshing the interface in case of player change or transaction taking place
-def refreshInterface(player):
-    for widget in frame_assets.winfo_children():
-        widget.destroy()
+def refreshInterface(player=p_bank):
 
-    asset_section_label = tk.Label(frame_assets, text='Assets', font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
-    asset_section_label.grid(row=0, column=0, columnspan=4, pady=10)    
+    GameElement.emptyWidget(frame_assets)   
+    SectionLabel(frame_assets, 'Assets')   
 
     for idx, asset in enumerate(player.assets):
         asset_label = AssetLabel(frame_assets, asset)
+        # decides in which row the element is placed
         if idx < 4:
             asset_label.placeElement(1, idx)
         elif idx < 8:
             asset_label.placeElement(2, idx-4)
-        else:
+        elif idx < 12:
             asset_label.placeElement(3, idx-8)
+        else:
+            pass
 
     global power_section
-    for widget in power_section.frame.winfo_children():
-            widget.destroy()
-    
+    GameElement.emptyWidget(power_section.frame)    
     power_section = PowerSection(player)
     power_section.placeElement()
 
     global smart_section
-    for widget in smart_section.frame.winfo_children():
-            widget.destroy()
-    
+    GameElement.emptyWidget(smart_section.frame)    
     smart_section = SmartAppSection(player)
     smart_section.placeElement()
+
+    GameElement.emptyWidget(frame_services)   
+    SectionLabel(frame_services, 'Services') 
+
+    for idx, service in enumerate(player.services):
+        service_label = ServiceLabel(frame_services, service)
+        # decides in which row the element is placed
+        if idx < 4:
+            service_label.placeElement(1, idx)
+        elif idx < 8:
+            service_label.placeElement(2, idx-4)
+        else:
+            pass
+
 
 class GameElement(ABC):
 
@@ -64,11 +77,18 @@ class GameElement(ABC):
 player_roles = [player.role.name for player in list_players]
 name_to_player = {role: player for role, player in zip(player_roles, list_players)}
 
+class SectionLabel(): 
+
+    def __init__(self, master, section) -> None:
+        self.master = master
+        self.label = tk.Label(master, text=section, font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
+        self.label.grid(row=0, column=0, columnspan=5, pady=10)    
+
+
 
 class PlayerDropdown(GameElement):
 
-    def __init__(self, master, balance) -> None:
-        
+    def __init__(self, master, balance) -> None:  
         self.master = master
         self.balance = balance
         self.role_var = tk.StringVar()
@@ -196,7 +216,7 @@ class BuyButton(GameElement):
             # mapping back asset name to asset
             try:
                 for asset in receiver.assets:
-                    if asset.name == parameters.assets_services.dropdown_var.get():
+                    if asset.name == parameters.ass_ser_dropdown.dropdown_var.get():
                         correct_asset = asset                   
             except:
                 correct_asset = oil2
@@ -228,15 +248,15 @@ class SpecialTransactionParameters(GameElement):
 
     def __init__(self) -> None:
         self.master = frame_transactions
-        self.frame = tk.Frame(self.master)
+        self.frame = tk.Frame(self.master, highlightbackground='green', highlightthickness=2, padx=10, pady=5)
         self.power_entry = PowerEntry(self.frame)
 
-        # for both assets and service
-        self.asset_var = tk.StringVar()
-        self.asset_var.set('Choose Asset:')
+        # for assets
+        self.dd_var = tk.StringVar()
+        self.dd_var.set('Choose Asset:')
         self.asset_options = [asset.name for asset in p_bank.assets]
-        self.assets_services = AssetServiceDropdown(self.frame, p_bank.assets)
-        # self.assets_services['menu'].insert_separator(0)
+        self.ass_ser_dropdown = AssetDropdown(self.frame, p_bank.assets)
+        # self.ass_ser_dropdown['menu'].insert_separator(0)
 
         self.smartapp_var = tk.StringVar()
         self.smartapp_var.set('Chose SmartApp:')
@@ -244,13 +264,13 @@ class SpecialTransactionParameters(GameElement):
         self.smartapp_drowpdown = tk.OptionMenu(self.frame, self.smartapp_var, *self.smartapp_options)      
 
     def placeElement(self):
-        self.frame.grid(row=8)
-        self.assets_services.dropdown.grid(row=0, column=0)
+        self.frame.grid(row=8, padx=5, pady=5)
+        self.ass_ser_dropdown.dropdown.grid(row=0, column=0)
         self.smartapp_drowpdown.grid(row=0, column=1)
         self.power_entry.placeElement()
 
 
-class AssetServiceDropdown(GameElement):
+class AssetDropdown(GameElement):
 
     def __init__(self, master, options, initial_text='Select Asset:') -> None:
         self.master = master
@@ -272,6 +292,30 @@ class AssetServiceDropdown(GameElement):
     def formatElement(self) -> None:
         max_width = 15
         self.dropdown.config(width=max_width, bg='GREEN', fg='BLACK')
+
+class ServiceDropdown(GameElement):
+
+    def __init__(self, master, options, initial_text='Select Service:') -> None:
+        self.master = master
+        self.dropdown_var = tk.StringVar()
+        self.dropdown_var.set(initial_text)
+        # print(options)
+        if len(options) < 1:
+            self.dropdown_options = ['None']
+        else:
+            self.dropdown_options = [opt.name for opt in options]
+            self.dropdown_options.sort()
+            print(type(self.dropdown_options), options)
+        self.dropdown = tk.OptionMenu(self.master, self.dropdown_var, *self.dropdown_options) 
+        self.formatElement()
+
+    def placeElement(self) -> None:
+        self.dropdown.grid(row=1, column=2)  
+
+    def formatElement(self) -> None:
+        max_width = 15
+        self.dropdown.config(width=max_width, bg='#990000', fg='BLACK')
+
 
 # currently work in progress
 class PowerEntry(GameElement):
@@ -314,7 +358,7 @@ class TransactionRadio(GameElement):
 
     def __init__(self, master) -> None:
         self.master = master
-        self.frame = tk.Frame(self.master, highlightbackground='blue', highlightthickness=2)
+        self.frame = tk.Frame(self.master, highlightbackground='black', highlightthickness=2, padx=10, pady=5)
         self.label = tk.Label(self.frame, text='Transaction Type', borderwidth=1, relief='solid')
         self.radios = list()
         self.type_var = tk.IntVar(value=1)
@@ -343,27 +387,31 @@ class TransactionRadio(GameElement):
     
 def disableDistractions() -> None:
     if typeradio.type_var.get() == TransactionType.STANDARD.value:
-        parameters.assets_services.dropdown.config(state='disabled')
+        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
+
     elif typeradio.type_var.get() == TransactionType.ASSET.value:
-        parameters.assets_services.dropdown.config(state='normal')
+        parameters.ass_ser_dropdown.dropdown.config(state='normal')
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
+
     elif typeradio.type_var.get() == TransactionType.METER.value:   
-        parameters.assets_services.dropdown.config(state='disabled')
+        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='normal')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
+
     elif typeradio.type_var.get() == TransactionType.SERVICE.value:
-        parameters.assets_services.dropdown.config(state='normal')
+        parameters.ass_ser_dropdown.dropdown.config(state='normal')
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
+            
     elif typeradio.type_var.get() == TransactionType.POWER.value:
-        parameters.assets_services.dropdown.config(state='disabled')
+        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='normal')
@@ -373,7 +421,7 @@ class PlayerRadio(GameElement):
 
     def __init__(self, master):
         self.master = master
-        self.frame = tk.Frame(self.master)
+        self.frame = tk.Frame(self.master, highlightbackground='black', highlightthickness=2, padx=10, pady=5)
         self.player_var = tk.IntVar(value=1)
         self.options = [role for role in Role]
         self.radios = list()
@@ -387,16 +435,16 @@ class PlayerRadio(GameElement):
                 text=polishString(option.name), 
                 variable=self.player_var, 
                 value=option.value,
-                command=lambda: self.changeAssetlist(self.player_var.get()))
+                command=lambda: self.changeDropdown(self.player_var.get()))
             self.radios.append(radio)
 
         self.formatElement()
 
-    def changeAssetlist(self, enum_):
-        parameters.assets_services.dropdown.destroy()
+    def changeDropdown(self, enum_):
+        parameters.ass_ser_dropdown.dropdown.destroy()
         player_ = name_to_player[Role(enum_).name]
 
-        parameters.assets_services = AssetServiceDropdown(parameters.frame, player_.assets)
+        parameters.ass_ser_dropdown = AssetDropdown(parameters.frame, player_.assets)
         parameters.placeElement()
 
         disableDistractions()
@@ -444,7 +492,7 @@ class PowerSection(GameElement):
     def placeElement(self):
         self.frame.grid(row=0, column=1) 
         self.heading.grid(row=0,column=0, columnspan=2, pady=5)   
-        for color, element in zip(['green', 'black', 'red', 'blue'], [self.green, self.fossil, self.total, self.demand]):
+        for color, element in zip(['green', 'black', '#990000', 'blue'], [self.green, self.fossil, self.total, self.demand]):
             element.formatElement(color)
         self.green.placeElement(1, 0)
         self.fossil.placeElement(1, 1)
@@ -472,14 +520,15 @@ class PowerDisplay(GameElement):
     def formatElement(self,color):
         self.frame.config(highlightthickness=2, highlightbackground=color)
 
-
+current_year = 1
 
 class SmartAppSection(GameElement):
 
     def __init__(self, player):
         self.master = root
-        self.frame = tk.Frame(self.master)
+        self.frame = tk.Frame(self.master, padx=20, pady=20)
         self.subframe = tk.Frame(self.frame)
+        self.new_year_button = tk.Button(self.subframe, text='Year '+str(current_year+1), padx=20, pady=10, command=self.newYearClick)
         self.stats = tk.Button(self.subframe, text='Stats', padx=20, pady=10)
         self.quit_ = QuitButton(self.subframe)
         self.appdisplay = SmartAppDisplay(self.frame, player)
@@ -487,10 +536,22 @@ class SmartAppSection(GameElement):
     def placeElement(self):
         self.frame.grid(row=0, column=2)
         self.subframe.pack()
-        self.stats.grid(row=0, column=0)
+        self.new_year_button.grid(row=0, column=0)
+        self.stats.grid(row=0, column=1)
         self.quit_.placeElement()
         self.appdisplay.placeElement()
 
+    def newYearClick(self):
+        new_year_number = int(self.new_year_button.cget('text')[-1])
+        for player in list_players:
+            player.newYear(new_year_number)
+
+        global current_year
+        current_year +=1
+        current_player = name_to_player[polishString(player_selection.role_var.get(), 'upper')]
+        refreshInterface(current_player)
+        balance.amount.config(text=f'$ {str(current_player.money)}')
+      
 
 class SmartAppDisplay(GameElement):
 
@@ -553,7 +614,7 @@ class QuitButton(GameElement):
         root.destroy()     
 
     def placeElement(self):
-        self.quitbutton.grid(row=0, column=1)
+        self.quitbutton.grid(row=0, column=2)
 
     def formatElement(self):
         self.quitbutton.config(fg='red')
@@ -562,6 +623,7 @@ class QuitButton(GameElement):
 class AssetLabel(GameElement):
 
     def __init__(self, master, asset) -> None:
+
         if len(asset.name) > 8:
             text = asset.name
             index = text.find(' ')
@@ -594,6 +656,38 @@ class AssetLabel(GameElement):
         self.name_label.config(fg=text_col, bg=color)
         self.power_type.config(fg=color)  
 
+class ServiceLabel(GameElement):
+
+    # basically copy of asset label, will be improved in the future
+    def __init__(self, master, service) -> None:
+
+        if len(service.name) > 8:
+            text = service.name
+            index = text.find(' ')
+            text = text[:index] + '\n' + text[index+1:]
+        else:
+            text = service.name
+
+        self.master = master
+        self.service = service
+        self.container = tk.Frame(self.master)
+        self.name_label =  tk.Label(self.container, text=text)
+        self.power_type = tk.Label(self.container, text=self.service.power.subtype.name)
+        self.power_values = tk.Label(self.container, text=f'{self.service.power.values}')
+        self.formatElement()
+
+    def placeElement(self, row, column):
+        self.container.grid(row=row, column=column, padx=5, pady=5)
+        self.name_label.pack()
+        self.power_type.pack()
+        self.power_values.pack()
+
+    def formatElement(self):
+        color = '#990000'
+        self.container.config(highlightbackground=color, highlightthickness=2)
+        self.name_label.config(bg=color, fg='white')
+        self.power_type.config(fg=color)  
+
 
 class ErrorWindow():
 
@@ -604,13 +698,11 @@ class ErrorWindow():
 #####################
 frame_transactions = tk.Frame(root)
 frame_power = tk.Frame(root, padx=150, pady=70)
-frame_smartapps = tk.Frame(root, padx=150, pady=70)
 frame_assets = tk.Frame(root, padx=50, pady=30)
-frame_services = tk.Frame(root, padx=150, pady=70)
+frame_services = tk.Frame(root, padx=50, pady=30)
 
 frame_transactions.grid(row=0, column=0, rowspan=2)
 frame_power.grid(row=0, column=1)
-frame_smartapps.grid(row=0, column=2)
 frame_assets.grid(row=1, column=1)
 frame_services.grid(row=1, column=2)
 ######################
@@ -646,7 +738,6 @@ playerradio.placeElement()
 
 
 # other stuff
-quit_ = QuitButton(frame_smartapps).placeElement()
 
 asset_section_label = tk.Label(frame_assets, text='Assets', font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
 asset_section_label.grid(row=0, column=0, columnspan=2)
@@ -659,11 +750,10 @@ power_section.placeElement()
 smart_section = SmartAppSection(p_bank)
 smart_section.placeElement()
 
-# print(transaction_subframe.winfo_children())
-# print(frame_assets.winfo_children())
+service_label = SectionLabel(frame_services, 'Services')
 
-# for widget in frame_assets.winfo_children():
-#     widget.destroy()
+test = ServiceDropdown(root, p_bank.services)
+test.dropdown.grid(row=0,column=5)
 
 root.mainloop()
 

@@ -63,7 +63,7 @@ class Player:
             print(serv)
 
     def newYear(self, year: int):
-        self.powerbank.demand = self.demandUpdate[year]
+        self.powerbank.demand = Power(subtype=PowerType.DEMAND, values=self.demandUpdate[year])
         self.money += self.fundsUpdate[year]
 
 
@@ -77,8 +77,9 @@ class Bank(Player):
         super().__init__()
         self.money = 1337
         self.powerbank.demand.values = [0, 0, 0]
-        self.assets = [gas1, gas2, coal1, oil2, solar1, geothermal, blwind, solarpv]
-        self.services = [home_ins]
+        # current selection of assets and services is a placeholder
+        self.assets = [gas1, gas2, coal1, oil2, solar1, geothermal, blwind, solarpv]*2
+        self.services = [home_ins, app_lease, drone_delivery, electric_mob, business_eff]*2
      
 # define properties for energy companies
 class EnergyComp(Player):
