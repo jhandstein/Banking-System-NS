@@ -1,6 +1,6 @@
 from enums import PowerType
 
-class Power():
+class Power:
 
     # power costs are used to facilitate power transactions between players. not yet implemented
     energy_cost = 70
@@ -29,7 +29,7 @@ green_power.changePower(test_power)
 
 
 # this combines information about the power status of each player
-class PowerBank():
+class PowerBank:
         
     def __init__(self):
         self.green = Power()
@@ -59,7 +59,7 @@ class Asset:
         return self.name == other.name
 
         
-class Service():
+class Service:
     # quant: 5
 
     def __init__(self, name: str, cost: int, power):
@@ -75,7 +75,7 @@ class Service():
         return f'{self.name} -- Cost: {self.cost} -- Changes: {self.power.values}'
 
 # similar to the PowerBank, this contains all information about Smart Applications for each player
-class SmartAppsOverview():
+class SmartAppsOverview:
 
     def __init__(self, grid=0, meter=0, storage=0):
         self.grid = grid
