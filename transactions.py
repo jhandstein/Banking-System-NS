@@ -16,7 +16,7 @@ class Transaction(ABC):
     def checkViability(self):
         # only allow transaction if funds are sufficient
         if self.payer.money >= self.amount:
-            if self.amount > 0:
+            if self.amount >= 0:
                 return True       
             else:
                 print('Entered 0 or negative number') 
