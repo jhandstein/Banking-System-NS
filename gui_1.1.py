@@ -203,6 +203,7 @@ class BuyButton(GameElement):
         transaction.performTransaction(transaction.checkViability())
 
         refreshInterface(payer)
+        changeDropdown(playerradio.player_var.get())
 
         balance.amount.config(text=f'$ {str(payer.money)}')
         entrybox.amount.delete(0, tk.END)
@@ -224,7 +225,19 @@ class BuyButton(GameElement):
             transaction = AssetTransaction(correct_asset, transaction_volume, payer, receiver)
         # smart application transaction
         elif typeradio.type_var.get() == TransactionType.METER.value:           
-            transaction = MeterTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)       
+            transaction = MeterTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
+
+        elif typeradio.type_var.get() == TransactionType.SERVICE.value:
+            # mapping back service name to service
+            try:
+                for service in receiver.services:
+                    if service.name == parameters.ass_ser_dropdown.dropdown_var.get():
+                        correct_service = service                   
+            except:
+                correct_service = home_ins
+                print('base service was used as dummy for transaction')
+            transaction = ServiceTransaction(correct_service, transaction_volume, payer, receiver)  
+
         # power transaction
         elif typeradio.type_var.get() == TransactionType.POWER.value:  
             values = [int(value.get()) if value.get() != '' else 0 for value in parameters.power_entry.boxes]
@@ -270,6 +283,16 @@ class SpecialTransactionParameters(GameElement):
         self.power_entry.placeElement()
 
 
+def changeDropdown(enum_):
+    parameters.ass_ser_dropdown.dropdown.destroy()
+    player_ = name_to_player[Role(enum_).name]
+
+    if typeradio.type_var.get() == TransactionType.SERVICE.value:
+        parameters.ass_ser_dropdown = ServiceDropdown(parameters.frame, player_.services)
+    else:  
+        parameters.ass_ser_dropdown = AssetDropdown(parameters.frame, player_.assets)           
+    parameters.placeElement()
+
 class AssetDropdown(GameElement):
 
     def __init__(self, master, options, initial_text='Select Asset:') -> None:
@@ -305,7 +328,6 @@ class ServiceDropdown(GameElement):
         else:
             self.dropdown_options = [opt.name for opt in options]
             self.dropdown_options.sort()
-            print(type(self.dropdown_options), options)
         self.dropdown = tk.OptionMenu(self.master, self.dropdown_var, *self.dropdown_options) 
         self.formatElement()
 
@@ -394,6 +416,7 @@ def disableDistractions() -> None:
 
     elif typeradio.type_var.get() == TransactionType.ASSET.value:
         parameters.ass_ser_dropdown.dropdown.config(state='normal')
+        changeDropdown(playerradio.player_var.get())
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
@@ -406,6 +429,7 @@ def disableDistractions() -> None:
 
     elif typeradio.type_var.get() == TransactionType.SERVICE.value:
         parameters.ass_ser_dropdown.dropdown.config(state='normal')
+        changeDropdown(playerradio.player_var.get())
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
@@ -435,19 +459,10 @@ class PlayerRadio(GameElement):
                 text=polishString(option.name), 
                 variable=self.player_var, 
                 value=option.value,
-                command=lambda: self.changeDropdown(self.player_var.get()))
+                command=lambda: changeDropdown(self.player_var.get()))
             self.radios.append(radio)
 
         self.formatElement()
-
-    def changeDropdown(self, enum_):
-        parameters.ass_ser_dropdown.dropdown.destroy()
-        player_ = name_to_player[Role(enum_).name]
-
-        parameters.ass_ser_dropdown = AssetDropdown(parameters.frame, player_.assets)
-        parameters.placeElement()
-
-        disableDistractions()
 
     def placeElement(self):
         self.frame.grid(row=12, padx=10, pady=10)
@@ -752,8 +767,8 @@ smart_section.placeElement()
 
 service_label = SectionLabel(frame_services, 'Services')
 
-test = ServiceDropdown(root, p_bank.services)
-test.dropdown.grid(row=0,column=5)
+# test = ServiceDropdown(root, p_bank.services)
+# test.dropdown.grid(row=0,column=5)
 
 root.mainloop()
 
