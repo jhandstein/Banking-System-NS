@@ -54,7 +54,7 @@ class Player:
         
         print('----'*10)
 
-    def listMeters(self):
+    def listSmartApps(self):
         print(self.smartapps)
        
     def listServices(self):
@@ -267,7 +267,7 @@ for player in list_players:
 # print(Player.playercount)
 # p_agrosmart.newYear(3)
 # print(p_agrosmart)
-# p_boogle.listMeters()
+# p_boogle.listSmartApps()
 # p_clam.listAssets()
 # p_union.listServices()
 # print(Player.allplayers)

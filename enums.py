@@ -34,10 +34,10 @@ class PowerType(EnumExt):
 
 class TransactionType(EnumExt):
 
-    STANDARD = auto()
+    CASH = auto()
     POWER = auto()
     ASSET = auto()
-    METER = auto()
+    SMARTAPP = auto()
     SERVICE = auto() 
        
 # class Location(EnumExt):
@@ -50,13 +50,12 @@ class TransactionType(EnumExt):
 def polishString(string, type_='normal'):
 
     if type_ == 'normal':
-
-        # if string[:2].lower() == 'ag':
-        #     return 'AgroSmart'
         if string[:1].lower() == 'e':
             return 'EdisonAirport'
         elif string[:2].lower() == 'ne':
             return 'NewSun'
+        elif string[:2].lower() == 'sm':
+            return 'SmartApp'
         elif string[:1].lower() == 'w':
             return 'WesternEnergy'
         return string[:1].upper() + string[1:].lower()

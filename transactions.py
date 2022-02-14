@@ -40,7 +40,7 @@ class Transaction(ABC):
         return True
 
             
-class NormalTransaction(Transaction):   
+class CashTransaction(Transaction):   
 
     def checkViability(self):
         if super().checkViability() is False:
@@ -92,7 +92,7 @@ class AssetTransaction(Transaction):
             print('No assets were traded!')
 
 
-class MeterTransaction(Transaction):
+class SmartAppTransaction(Transaction):
     
     
     def __init__(self, app: str, amount, payer, receiver=p_bank):
@@ -233,8 +233,8 @@ class PowerTransaction(Transaction):
 # print(p_energy_test.powerbank.green)
 # print(p_agrosmart.powerbank.green)
 
-# test1 = NormalTransaction(300, p_agrosmart)
-# test2 = NormalTransaction(30000, p_agrosmart)
+# test1 = CashTransaction(300, p_agrosmart)
+# test2 = CashTransaction(30000, p_agrosmart)
 # test3 = AssetTransaction(coal1, 500, p_edisonair, p_clam)
 # test4 = AssetTransaction(coal1, 500, p_sunsociety, p_bank)
 # test_service = ServiceTransaction(home_ins, 500, p_agrosmart)
@@ -279,8 +279,8 @@ class PowerTransaction(Transaction):
 # x = trade_service.checkViability()
 # trade_service.performTransaction(x)
 
-# meters = MeterTransaction('grid', 300, p_test)
-# # meters = MeterTransaction('grid', 100, p_test, p_boogle)
+# meters = SmartAppTransaction('grid', 300, p_test)
+# # meters = SmartAppTransaction('grid', 100, p_test, p_boogle)
 # x = meters.checkViability()
 # meters.performTransaction(x)
 
