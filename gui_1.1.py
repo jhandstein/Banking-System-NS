@@ -2,12 +2,13 @@ import tkinter as tk
 from PIL import ImageTk, Image
 from abc import ABC, abstractmethod
 
-from pyparsing import col
-
 from enums import Role, TransactionType, polishString
-from assets import *
+from assets import Power #, PowerBank, Asset, Service, SmartAppsOverview
 from players import *
-from transactions import *
+from transactions import CashTransaction, PowerTransaction, SmartAppTransaction, AssetTransaction, ServiceTransaction
+
+from image_test import PhotoImageLabel
+
 
 root = tk.Tk()
 root.title('Newton Shift - Home')
@@ -68,7 +69,7 @@ class SectionLabel():
 
     def __init__(self, master, section) -> None:
         self.master = master
-        self.label = tk.Label(master, text=section, font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
+        self.label = tk.Label(master, text=section, font='Helvetica 18 bold', padx=10, pady=10, borderwidth=2, relief='solid')
         self.label.grid(row=0, column=0, columnspan=5, pady=10)    
 
 
@@ -203,15 +204,15 @@ class BuyButton(GameElement):
         entrybox.amount.delete(0, tk.END)
 
     def chooseTransactionType(self, transaction_volume, payer, receiver):
-        # standard transaction
-        if typeradio.type_var.get() == TransactionType.STANDARD.value:
-            transaction = NormalTransaction(transaction_volume, payer, receiver)
+        # CASH transaction
+        if typeradio.type_var.get() == TransactionType.CASH.value:
+            transaction = CashTransaction(transaction_volume, payer, receiver)
        
         # Smart Application Transaction
-        elif typeradio.type_var.get() == TransactionType.METER.value:           
-            transaction = MeterTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
+        elif typeradio.type_var.get() == TransactionType.SMARTAPP.value:           
+            transaction = SmartAppTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
       
-        # Asset Transaction
+        # ASSET Transaction
         elif typeradio.type_var.get() == TransactionType.ASSET.value:
             # mapping back asset name to asset
             try:
@@ -223,7 +224,7 @@ class BuyButton(GameElement):
                 print('base asset was used as dummy for transaction')
             transaction = AssetTransaction(correct_asset, transaction_volume, payer, receiver)
 
-        # Service Transaction
+        # SERVICE Transaction
         elif typeradio.type_var.get() == TransactionType.SERVICE.value:
             # mapping back service name to service
             try:
@@ -235,7 +236,7 @@ class BuyButton(GameElement):
                 print('base service was used as dummy for transaction')
             transaction = ServiceTransaction(correct_service, transaction_volume, payer, receiver)  
 
-        # Power Transaction
+        # POWER Transaction
         elif typeradio.type_var.get() == TransactionType.POWER.value:  
             values = [int(value.get()) if value.get() != '' else 0 for value in parameters.power_entry.boxes]
             for entry in parameters.power_entry.boxes:
@@ -247,7 +248,7 @@ class BuyButton(GameElement):
         return transaction
     
     def formatElement(self):
-        self.buybutton.config(fg='red')
+        self.buybutton.config(fg='red', font=('Times New Roman bold', 30))
         self.buybutton.config(padx=30, pady = 20)
     
     def placeElement(self):
@@ -405,7 +406,7 @@ class TransactionRadio(GameElement):
             widget.config(padx=5, pady=2)
     
 def disableDistractions() -> None:
-    if typeradio.type_var.get() == TransactionType.STANDARD.value:
+    if typeradio.type_var.get() == TransactionType.CASH.value:
         parameters.ass_ser_dropdown.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='disabled')
         for entry_box in parameters.power_entry.widgets:
@@ -418,7 +419,7 @@ def disableDistractions() -> None:
         for entry_box in parameters.power_entry.widgets:
             entry_box.config(state='disabled')
 
-    elif typeradio.type_var.get() == TransactionType.METER.value:   
+    elif typeradio.type_var.get() == TransactionType.SMARTAPP.value:   
         parameters.ass_ser_dropdown.dropdown.config(state='disabled')
         parameters.smartapp_drowpdown.config(state='normal')
         for entry_box in parameters.power_entry.widgets:
@@ -476,7 +477,7 @@ class PlayerRadio(GameElement):
             widget.config(padx=5, pady=2)
     
 
-# not fully implemented
+# not implemented yet
 class LogWindow(GameElement):
 
     def __init__(self, master) -> None:
@@ -494,8 +495,9 @@ class LogWindow(GameElement):
 class PowerSection(GameElement):
 
     def __init__(self, player) -> None:
-        self.frame = tk.Frame(root)
-        self.heading = tk.Label(self.frame, text='Power Section', font='Helvetica 18 bold', borderwidth=2, relief='solid', padx=10, pady=10)
+        self.frame = tk.Frame(root, padx=20, pady=10)
+        # self.heading = tk.Label(self.frame, text='Power Section', font='Helvetica 18 bold', borderwidth=2, relief='solid', padx=10, pady=10)
+        self.heading = SectionLabel(self.frame, 'Power Section')
         self.green = PowerDisplay(self.frame, player.powerbank.green)
         self.fossil = PowerDisplay(self.frame, player.powerbank.fossil)
         self.demand = PowerDisplay(self.frame, player.powerbank.demand)
@@ -503,7 +505,7 @@ class PowerSection(GameElement):
   
     def placeElement(self):
         self.frame.grid(row=0, column=1) 
-        self.heading.grid(row=0,column=0, columnspan=2, pady=5)   
+        self.heading.label.grid(row=0,column=0, columnspan=2, pady=5)   
         for color, element in zip(['green', 'black', '#990000', 'blue'], [self.green, self.fossil, self.total, self.demand]):
             element.formatElement(color)
         self.green.placeElement(1, 0)
@@ -539,6 +541,7 @@ class SmartAppSection(GameElement):
     def __init__(self, player):
         self.master = root
         self.frame = tk.Frame(self.master, padx=20, pady=20)
+        self.heading = SectionLabel(self.frame, 'Smart Applications')
         self.subframe = tk.Frame(self.frame)
         self.new_year_button = tk.Button(self.subframe, text='Year '+str(current_year+1), padx=20, pady=10, command=self.newYearClick)
         self.stats = tk.Button(self.subframe, text='Stats', padx=20, pady=10)
@@ -547,9 +550,9 @@ class SmartAppSection(GameElement):
 
     def placeElement(self):
         self.frame.grid(row=0, column=2)
-        self.subframe.pack()
-        self.new_year_button.grid(row=0, column=0)
-        self.stats.grid(row=0, column=1)
+        self.subframe.grid(row=1, column=0, columnspan=2)
+        self.new_year_button.grid(row=1, column=0)
+        self.stats.grid(row=1, column=1)
         self.quit_.placeElement()
         self.appdisplay.placeElement()
 
@@ -575,7 +578,7 @@ class SmartAppDisplay(GameElement):
         self.storage_display = OneSmartApp(self.frame, player, 'storage', 'blue')
 
     def placeElement(self):
-        self.frame.pack()
+        self.frame.grid(row=2, column=0, columnspan=3)
         self.grid_display.placeElement(0)
         self.meter_display.placeElement(1)
         self.storage_display.placeElement(2)
@@ -626,7 +629,7 @@ class QuitButton(GameElement):
         root.destroy()     
 
     def placeElement(self):
-        self.quitbutton.grid(row=0, column=2)
+        self.quitbutton.grid(row=1, column=2)
 
     def formatElement(self):
         self.quitbutton.config(fg='red')
@@ -706,66 +709,66 @@ class ErrorWindow():
     def __init__(self, master) -> None:
         self.master = master
      
-# do all the frames
-#####################
-frame_transactions = tk.Frame(root)
-frame_power = tk.Frame(root, padx=150, pady=70)
-frame_assets = tk.Frame(root, padx=50, pady=30)
-frame_services = tk.Frame(root, padx=50, pady=30)
 
-frame_transactions.grid(row=0, column=0, rowspan=2)
-frame_power.grid(row=0, column=1)
-frame_assets.grid(row=1, column=1)
-frame_services.grid(row=1, column=2)
-######################
+# frame_power = tk.Frame(root, padx=150, pady=70)
+# frame_power.grid(row=0, column=1)
+
 
 
 # do everything in transaction screen
+frame_transactions = tk.Frame(root)
+frame_transactions.grid(row=0, column=0, rowspan=2)
+
+# has to be created ahead of player drowdown because of dependency
+balance = Balance(frame_transactions)
+
+# top row of transaction section
 transaction_subframe = tk.Frame(frame_transactions, padx=20, pady=10)
 transaction_subframe.grid(sticky='w')
-
-# player drop down is dependent of the balance, so balance has to be created first
-balance = Balance(frame_transactions)
-balance.placeElement()
-
 player_selection = PlayerDropdown(transaction_subframe, balance.amount)
 player_selection.placeElement()
 info_button = InfoButton(transaction_subframe)
 info_button.placeElement()
 
+# place the rest of transaction windwow
+balance.placeElement()
 entrybox = EnterAmount(frame_transactions)
 entrybox.placeElement()
 typeradio = TransactionRadio(frame_transactions)
 playerradio = PlayerRadio(frame_transactions)
+# depends on playerradio, therefore the order
 buy = BuyButton(frame_transactions, playerradio)
 buy.placeElement()
 
 parameters = SpecialTransactionParameters()
 parameters.placeElement()
-
 typeradio.placeElement()
 playerradio.placeElement()
 
-# log_window = LogWindow()
-
-
-# other stuff
-
-asset_section_label = tk.Label(frame_assets, text='Assets', font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
-asset_section_label.grid(row=0, column=0, columnspan=2)
 
 # populate power frame
-
 power_section = PowerSection(p_bank)
 power_section.placeElement()
 
+# populate SmartSection frame
 smart_section = SmartAppSection(p_bank)
 smart_section.placeElement()
 
+# create Assset Section (frame not included in class)
+frame_assets = tk.Frame(root, padx=50, pady=30)
+frame_assets.grid(row=1, column=1)
+asset_section_label = SectionLabel(frame_assets, 'Assets')
+
+# create Service Section (frame not included in class)
+frame_services = tk.Frame(root, padx=50, pady=30)
+frame_services.grid(row=1, column=2)
 service_label = SectionLabel(frame_services, 'Services')
 
-# test = ServiceDropdown(root, p_bank.services)
-# test.dropdown.grid(row=0,column=5)
+
+# testing images
+
+# photo_label = PhotoImageLabel(root, image='energy.png')
+# photo_label.grid(row=4, column=4)
 
 root.mainloop()
 
