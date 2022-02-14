@@ -23,9 +23,21 @@ def sortAssets(assetlist) -> list:
 # refreshing the interface in case of player change or transaction taking place
 def refreshInterface(player=p_bank):
 
+    # Power Section
+    global power_section
+    GameElement.emptyWidget(power_section.frame)    
+    power_section = PowerSection(player)
+    power_section.placeElement()
+
+    # Smart Application Section
+    global smart_section
+    GameElement.emptyWidget(smart_section.frame)    
+    smart_section = SmartAppSection(player)
+    smart_section.placeElement()
+
+    # Asset Section
     GameElement.emptyWidget(frame_assets)   
     SectionLabel(frame_assets, 'Assets')   
-
     for idx, asset in enumerate(player.assets):
         asset_label = AssetLabel(frame_assets, asset)
         # decides in which row the element is placed
@@ -37,20 +49,10 @@ def refreshInterface(player=p_bank):
             asset_label.placeElement(3, idx-8)
         else:
             pass
-
-    global power_section
-    GameElement.emptyWidget(power_section.frame)    
-    power_section = PowerSection(player)
-    power_section.placeElement()
-
-    global smart_section
-    GameElement.emptyWidget(smart_section.frame)    
-    smart_section = SmartAppSection(player)
-    smart_section.placeElement()
-
+    
+    # Service Section
     GameElement.emptyWidget(frame_services)   
     SectionLabel(frame_services, 'Services') 
-
     for idx, service in enumerate(player.services):
         service_label = ServiceLabel(frame_services, service)
         # decides in which row the element is placed
@@ -62,21 +64,6 @@ def refreshInterface(player=p_bank):
             pass
 
 
-class GameElement(ABC):
-
-    @abstractmethod
-    def placeElement() -> None:
-        pass
-    
-    # currently unused. should replace some things in the function that reapplies widgets upon player switch
-    def emptyWidget(frame):
-        for widget in frame.winfo_children():
-                widget.destroy()
-
-# creating a way to map role classes to their enums
-player_roles = [player.role.name for player in list_players]
-name_to_player = {role: player for role, player in zip(player_roles, list_players)}
-
 class SectionLabel(): 
 
     def __init__(self, master, section) -> None:
@@ -84,6 +71,20 @@ class SectionLabel():
         self.label = tk.Label(master, text=section, font='Helvetica 18 bold', padx=10, pady=5, borderwidth=2, relief='solid')
         self.label.grid(row=0, column=0, columnspan=5, pady=10)    
 
+
+class GameElement(ABC):
+
+    @abstractmethod
+    def placeElement() -> None:
+        pass
+    
+    def emptyWidget(frame):
+        for widget in frame.winfo_children():
+                widget.destroy()
+
+# creating a way to map role classes to their enums
+player_roles = [player.role.name for player in list_players]
+name_to_player = {role: player for role, player in zip(player_roles, list_players)}
 
 
 class PlayerDropdown(GameElement):
@@ -95,21 +96,16 @@ class PlayerDropdown(GameElement):
         self.role_var.set('Player')
         self.role_options = [polishString(role.name)for role in Role]
         self.dropdown = tk.OptionMenu(self.master, self.role_var, *self.role_options, command=lambda x: self.changePlayer(self.balance))    
-        # https://stackoverflow.com/questions/55621073/add-a-separator-to-an-option-menu-in-python-with-tkinter
-        # seperates different playertypes
-        self.dropdown['menu'].insert_separator(1)
-        self.dropdown['menu'].insert_separator(4)
-        self.dropdown['menu'].insert_separator(8)
-        self.dropdown['menu'].insert_separator(12)
+        # hard codes separator between players into the dropdown menu
+        for position in [1, 4, 8, 12]:
+            self.dropdown['menu'].insert_separator(position)
         self.formatElement()
 
-    # has become very crowded and will be re-structured in a future version
     def changePlayer(self, balance_element):
         player_role = self.role_var.get() 
         selected_player = name_to_player[polishString(player_role, 'upper')]
-
         refreshInterface(selected_player)
-
+        # refreshes the balance
         new_balance = f'$ {str(selected_player.money)}' 
         balance_element.config(text=new_balance)
 
@@ -118,10 +114,9 @@ class PlayerDropdown(GameElement):
 
     def formatElement(self):
         max_width = len(max(self.role_options, key=len))
-        # print(max_width)
         self.dropdown.config(width=max_width+1)
 
-
+# currently no use implemented
 class InfoButton(GameElement):
 
     def __init__(self, master) -> None:
@@ -153,8 +148,7 @@ class Balance(GameElement):
         self.formatElement()
     
     def formatElement(self):
-        self.amount.config(font=('Helvetica', 60), fg='green')
-        self.amount.config(padx=10)
+        self.amount.config(font=('Helvetica', 60), fg='green', padx=10)
         self.amount.config(borderwidth=2, relief='solid')
 
     def placeElement(self):
@@ -212,7 +206,12 @@ class BuyButton(GameElement):
         # standard transaction
         if typeradio.type_var.get() == TransactionType.STANDARD.value:
             transaction = NormalTransaction(transaction_volume, payer, receiver)
-        # asset transaction
+       
+        # Smart Application Transaction
+        elif typeradio.type_var.get() == TransactionType.METER.value:           
+            transaction = MeterTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
+      
+        # Asset Transaction
         elif typeradio.type_var.get() == TransactionType.ASSET.value:
             # mapping back asset name to asset
             try:
@@ -223,10 +222,8 @@ class BuyButton(GameElement):
                 correct_asset = oil2
                 print('base asset was used as dummy for transaction')
             transaction = AssetTransaction(correct_asset, transaction_volume, payer, receiver)
-        # smart application transaction
-        elif typeradio.type_var.get() == TransactionType.METER.value:           
-            transaction = MeterTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
 
+        # Service Transaction
         elif typeradio.type_var.get() == TransactionType.SERVICE.value:
             # mapping back service name to service
             try:
@@ -238,7 +235,7 @@ class BuyButton(GameElement):
                 print('base service was used as dummy for transaction')
             transaction = ServiceTransaction(correct_service, transaction_volume, payer, receiver)  
 
-        # power transaction
+        # Power Transaction
         elif typeradio.type_var.get() == TransactionType.POWER.value:  
             values = [int(value.get()) if value.get() != '' else 0 for value in parameters.power_entry.boxes]
             for entry in parameters.power_entry.boxes:
