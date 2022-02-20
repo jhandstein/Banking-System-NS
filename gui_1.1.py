@@ -7,9 +7,6 @@ from assets import Power #, PowerBank, Asset, Service, SmartAppsOverview
 from players import *
 from transactions import CashTransaction, PowerTransaction, SmartAppTransaction, AssetTransaction, ServiceTransaction
 
-from image_test import PhotoImageLabel
-
-
 root = tk.Tk()
 root.title('Newton Shift - Home')
 root.configure(bg='light grey')
@@ -46,8 +43,6 @@ def refreshInterface(player=p_bank):
             asset_label.placeElement(1, idx)
         elif idx < 8:
             asset_label.placeElement(2, idx-4)
-        elif idx < 12:
-            asset_label.placeElement(3, idx-8)
         else:
             pass
     
@@ -210,14 +205,15 @@ class BuyButton(GameElement):
        
         # Smart Application Transaction
         elif typeradio.type_var.get() == TransactionType.SMARTAPP.value:           
-            transaction = SmartAppTransaction(parameters.smartapp_var.get(), transaction_volume, payer, receiver)   
-      
+            transaction = SmartAppTransaction(parameters.purchase_dropdown.dropdown_var.get(), transaction_volume, payer, receiver)   
+            print(parameters.purchase_dropdown.dropdown_var.get())
+
         # ASSET Transaction
         elif typeradio.type_var.get() == TransactionType.ASSET.value:
             # mapping back asset name to asset
             try:
                 for asset in receiver.assets:
-                    if asset.name == parameters.ass_ser_dropdown.dropdown_var.get():
+                    if asset.name == parameters.purchase_dropdown.dropdown_var.get():
                         correct_asset = asset                   
             except:
                 correct_asset = oil2
@@ -229,7 +225,7 @@ class BuyButton(GameElement):
             # mapping back service name to service
             try:
                 for service in receiver.services:
-                    if service.name == parameters.ass_ser_dropdown.dropdown_var.get():
+                    if service.name == parameters.purchase_dropdown.dropdown_var.get():
                         correct_service = service                   
             except:
                 correct_service = home_ins
@@ -266,31 +262,33 @@ class SpecialTransactionParameters(GameElement):
         self.dd_var = tk.StringVar()
         self.dd_var.set('Choose Asset:')
         self.asset_options = [asset.name for asset in p_bank.assets]
-        self.ass_ser_dropdown = AssetDropdown(self.frame, p_bank.assets)
-        # self.ass_ser_dropdown['menu'].insert_separator(0)
-
-        self.smartapp_var = tk.StringVar()
-        self.smartapp_var.set('Chose SmartApp:')
-        self.smartapp_options = [polishString(app_name) for app_name in p_bank.smartapps.__dict__.keys()]
-        self.smartapp_drowpdown = tk.OptionMenu(self.frame, self.smartapp_var, *self.smartapp_options)      
+        self.purchase_dropdown = AssetDropdown(self.frame, p_bank.assets)
 
     def placeElement(self):
         self.frame.grid(row=8, padx=5, pady=5)
-        self.ass_ser_dropdown.dropdown.grid(row=0, column=0)
-        self.smartapp_drowpdown.grid(row=0, column=1)
+        self.purchase_dropdown.dropdown.grid(row=0, column=0)
         self.power_entry.placeElement()
 
-
+# switch content of the dropdown to contain either assets, services or smartapps
 def changeDropdown(enum_):
-    parameters.ass_ser_dropdown.dropdown.destroy()
+    parameters.purchase_dropdown.dropdown.destroy()
     player_ = name_to_player[Role(enum_).name]
 
     if typeradio.type_var.get() == TransactionType.SERVICE.value:
-        parameters.ass_ser_dropdown = ServiceDropdown(parameters.frame, player_.services)
+        parameters.purchase_dropdown = ServiceDropdown(parameters.frame, player_.services)
+    elif typeradio.type_var.get() == TransactionType.SMARTAPP.value:
+        parameters.purchase_dropdown = SmartAppDropdown(parameters.frame, player_)
     else:  
-        parameters.ass_ser_dropdown = AssetDropdown(parameters.frame, player_.assets)           
+        parameters.purchase_dropdown = AssetDropdown(parameters.frame, player_.assets)           
     parameters.placeElement()
 
+    if typeradio.type_var.get() == TransactionType.CASH.value or typeradio.type_var.get() == TransactionType.POWER.value:
+        parameters.purchase_dropdown.dropdown.config(state='disabled')
+    else:
+        parameters.purchase_dropdown.dropdown.config(state='normal')
+    
+    
+# next three classes should be merged into one eventually
 class AssetDropdown(GameElement):
 
     def __init__(self, master, options, initial_text='Select Asset:') -> None:
@@ -336,13 +334,38 @@ class ServiceDropdown(GameElement):
         max_width = 15
         self.dropdown.config(width=max_width, bg='#990000', fg='BLACK')
 
+class SmartAppDropdown(GameElement):
 
-# currently work in progress
+    def __init__(self, master, player, initial_text='Select SmartApp:') -> None:
+        self.master = master
+        self.dropdown_var = tk.StringVar()
+        self.dropdown_var.set(initial_text)
+        # print(options)
+        self.dropdown_options = [polishString(app_name) for app_name in player.smartapps.__dict__.keys()]
+        self.dropdown = tk.OptionMenu(self.master, self.dropdown_var, *self.dropdown_options) 
+        self.formatElement()
+
+    def placeElement(self) -> None:
+        self.dropdown.grid(row=1, column=2)  
+
+    def formatElement(self) -> None:
+        max_width = 15
+        self.dropdown.config(width=max_width, bg='#000099', fg='BLACK')
+
+
+
+# Entry and RadioButton to fetch values for power amount and type
 class PowerEntry(GameElement):
 
     def __init__(self, master) -> None:
         self.master = master
         self.frame = tk.Frame(master)
+        # power images
+        self.img_energy = Icon(self.frame, size=25, image='energy.png')
+        self.img_heat = Icon(self.frame, size=25, image='heat.png')
+        self.img_mobility = Icon(self.frame, size=25, image='mobility.png') 
+        self.images = [self.img_energy, self.img_heat, self.img_mobility] 
+        # power entry boxes
         self.energy = tk.Entry(self.frame)
         self.heating = tk.Entry(self.frame)
         self.mobility = tk.Entry(self.frame)
@@ -361,17 +384,17 @@ class PowerEntry(GameElement):
         self.formatElement()
 
     def formatElement(self) -> None:
-        self.frame.config(highlightthickness=1, highlightcolor='red')
         for entry in self.boxes:
             entry.config(width=2, justify='center')
     
     def placeElement(self) -> None:
         self.frame.grid(row=1, column=0, columnspan=2, pady=5)
-        self.energy.grid(row=0, column=0)
-        self.heating.grid(row=0, column=1)
-        self.mobility.grid(row=0, column=2)
+        for idx, img in enumerate(self.images):
+            img.grid(row=0, column=idx)
+        for idx, entry in enumerate(self.boxes):
+            entry.grid(row=1, column=idx)
         self.green_button.grid(row=0, column=3)
-        self.fossil_button.grid(row=0, column=4)
+        self.fossil_button.grid(row=1, column=3)
 
 
 class TransactionRadio(GameElement):
@@ -404,39 +427,34 @@ class TransactionRadio(GameElement):
     def formatElement(self) -> None:
         for widget in self.frame.winfo_children():
             widget.config(padx=5, pady=2)
+
+def switchPowerEntry(state='disabled') -> None:
+    for entry_box in parameters.power_entry.widgets:
+            entry_box.config(state=state)
     
 def disableDistractions() -> None:
     if typeradio.type_var.get() == TransactionType.CASH.value:
-        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
-        parameters.smartapp_drowpdown.config(state='disabled')
-        for entry_box in parameters.power_entry.widgets:
-            entry_box.config(state='disabled')
+        parameters.purchase_dropdown.dropdown.config(state='disabled')
+        switchPowerEntry()
 
-    elif typeradio.type_var.get() == TransactionType.ASSET.value:
-        parameters.ass_ser_dropdown.dropdown.config(state='normal')
+    elif (typeradio.type_var.get() == TransactionType.ASSET.value):
+        parameters.purchase_dropdown.dropdown.config(state='normal')
         changeDropdown(playerradio.player_var.get())
-        parameters.smartapp_drowpdown.config(state='disabled')
-        for entry_box in parameters.power_entry.widgets:
-            entry_box.config(state='disabled')
+        switchPowerEntry()
 
     elif typeradio.type_var.get() == TransactionType.SMARTAPP.value:   
-        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
-        parameters.smartapp_drowpdown.config(state='normal')
-        for entry_box in parameters.power_entry.widgets:
-            entry_box.config(state='disabled')
+        parameters.purchase_dropdown.dropdown.config(state='normal')
+        changeDropdown(playerradio.player_var.get())
+        switchPowerEntry()
 
     elif typeradio.type_var.get() == TransactionType.SERVICE.value:
-        parameters.ass_ser_dropdown.dropdown.config(state='normal')
+        parameters.purchase_dropdown.dropdown.config(state='normal')
         changeDropdown(playerradio.player_var.get())
-        parameters.smartapp_drowpdown.config(state='disabled')
-        for entry_box in parameters.power_entry.widgets:
-            entry_box.config(state='disabled')
+        switchPowerEntry()
             
     elif typeradio.type_var.get() == TransactionType.POWER.value:
-        parameters.ass_ser_dropdown.dropdown.config(state='disabled')
-        parameters.smartapp_drowpdown.config(state='disabled')
-        for entry_box in parameters.power_entry.widgets:
-            entry_box.config(state='normal')
+        parameters.purchase_dropdown.dropdown.config(state='disabled')
+        switchPowerEntry('normal')
 
 
 class PlayerRadio(GameElement):
@@ -449,10 +467,7 @@ class PlayerRadio(GameElement):
         self.radios = list()
         self.label = tk.Label(self.frame, text='Transaction Partner', borderwidth=1, relief='solid')
 
-        # print(self.options)
-        # print(self.player_var)
         for _, option in enumerate(self.options):
-            # print(option)
             radio = tk.Radiobutton(self.frame, 
                 text=polishString(option.name), 
                 variable=self.player_var, 
@@ -463,7 +478,7 @@ class PlayerRadio(GameElement):
         self.formatElement()
 
     def placeElement(self):
-        self.frame.grid(row=12, padx=10, pady=10)
+        self.frame.grid(row=12, padx=10, pady=5)
         self.label.grid(row=0, column=0, sticky='w')
   
         for idx, radio in enumerate(self.radios[:6]):
@@ -510,29 +525,39 @@ class PowerSection(GameElement):
             element.formatElement(color)
         self.green.placeElement(1, 0)
         self.fossil.placeElement(1, 1)
-        self.total.placeElement(2, 0, 2)
-        self.demand.placeElement(3, 0, 2)
+        self.total.placeElement(2, 0, colspan=2)
+        self.demand.placeElement(3, 0, colspan=2)
 
 
 class PowerDisplay(GameElement):
 
     def __init__(self, master, power: Power):
         self.master = master
-        self.frame = tk.Frame(self.master)
+        self.frame = tk.Frame(self.master, padx=5)
         self.text = tk.Label(self.frame, text=power.subtype.name)
-        self.label1 = tk.Label(self.frame, text=power.values[0])
-        self.label2 = tk.Label(self.frame, text=power.values[1])
-        self.label3 = tk.Label(self.frame, text=power.values[2])
+        # places image and power values for each power type
+        for num, img in enumerate(['energy.png', 'heat.png', 'mobility.png']):
+            image = Icon(self.frame, image=img)
+            image.grid(row=1, column=num)
+            power_value = tk.Label(self.frame, text=power.values[num], font='Helvetica 17',padx=5)
+            power_value.grid(row=2, column=num, padx=5, pady=5)
     
     def placeElement(self, row: int, column: int, colspan=1):
         self.frame.grid(row=row, column=column, columnspan=colspan, padx=5, pady=5)
-        self.text.grid(row=0, columnspan=3)
-        self.label1.grid(row=1, column=0)
-        self.label2.grid(row=1, column=1)
-        self.label3.grid(row=1, column=2)
+        self.text.grid(row=0, columnspan=3, pady=8)
 
     def formatElement(self,color):
         self.frame.config(highlightthickness=2, highlightbackground=color)
+        self.text.config(font='Helvetica 14 bold')
+
+# prevents garbage collection of image. source: https://stackoverflow.com/questions/58788728/in-tkinter-is-this-a-good-way-of-avoiding-unwanted-garbage-collection
+class Icon(tk.Label):
+    def __init__(self, parent, size=20, **kwargs):
+        image = Image.open(kwargs['image'])
+        self._image = ImageTk.PhotoImage(image.resize((size, size), Image.ANTIALIAS))
+
+        kwargs['image'] = self._image
+        super().__init__(parent, **kwargs)
 
 current_year = 1
 
@@ -573,9 +598,9 @@ class SmartAppDisplay(GameElement):
     def __init__(self, master, player) -> None:
         self.master = master
         self.frame = tk.Frame(self.master)
-        self.grid_display = OneSmartApp(self.frame, player, 'grid', 'red')
-        self.meter_display = OneSmartApp(self.frame, player, 'meter', 'green')
-        self.storage_display = OneSmartApp(self.frame, player, 'storage', 'blue')
+        self.grid_display = OneSmartApp(self.frame, player, 'grid', 'grid.png','red')
+        self.meter_display = OneSmartApp(self.frame, player, 'meter', 'meter.png', 'green')
+        self.storage_display = OneSmartApp(self.frame, player, 'storage', 'storage.png', 'blue')
 
     def placeElement(self):
         self.frame.grid(row=2, column=0, columnspan=3)
@@ -586,12 +611,13 @@ class SmartAppDisplay(GameElement):
 
 class OneSmartApp(GameElement):
 
-    def __init__(self, master, player, name: str, color: str) -> None:
+    def __init__(self, master, player, name: str, image: str, color: str) -> None:
         self.master = master
         self.frame = tk.Frame(self.master)
         self.name = tk.Label(self.frame, text=name)
         self.icon = tk.Label(self.frame, text=color)
         self.color = color
+        self.image = Icon(self.frame, size=70, image=image)
 
         if player.smartapps.__dict__[name] <= 0:
             status_text = 'INACTIVE'
@@ -600,15 +626,15 @@ class OneSmartApp(GameElement):
             status_text = 'ACTIVE'
             text_color = 'orange'
 
-        self.status = tk.Label(self.frame, text=status_text, fg=text_color)
+        self.status = tk.Label(self.frame, text=status_text, fg=text_color, font=('Helvetica 14 bold'))
         self.formatElement()
 
     
     def placeElement(self, number):
 
         self.frame.grid(row=0, column=number) 
-        for widget in [self.name, self.icon, self.status]:
-            widget.pack()
+        for widget in [self.image, self.status]:
+            widget.pack(pady=5)
 
     def formatElement(self):
         self.icon.config(fg=self.color)
@@ -741,9 +767,40 @@ buy = BuyButton(frame_transactions, playerradio)
 buy.placeElement()
 
 parameters = SpecialTransactionParameters()
-parameters.placeElement()
 typeradio.placeElement()
 playerradio.placeElement()
+parameters.placeElement()
+
+
+
+# frame_transactions = tk.Frame(root)
+# frame_transactions.grid(row=0, column=0, rowspan=2)
+
+# # has to be created ahead of player drowdown because of dependency
+# balance = Balance(frame_transactions)
+
+# # top row of transaction section
+# transaction_subframe = tk.Frame(frame_transactions, padx=20, pady=10)
+# transaction_subframe.grid(sticky='w')
+# player_selection = PlayerDropdown(transaction_subframe, balance.amount)
+# player_selection.placeElement()
+# info_button = InfoButton(transaction_subframe)
+# info_button.placeElement()
+
+# # place the rest of transaction windwow
+# balance.placeElement()
+# entrybox = EnterAmount(frame_transactions)
+# entrybox.placeElement()
+# typeradio = TransactionRadio(frame_transactions)
+# playerradio = PlayerRadio(frame_transactions)
+# # depends on playerradio, therefore the order
+# buy = BuyButton(frame_transactions, playerradio)
+# buy.placeElement()
+
+# parameters = SpecialTransactionParameters()
+# parameters.placeElement()
+# typeradio.placeElement()
+# playerradio.placeElement()
 
 
 # populate power frame
@@ -764,7 +821,7 @@ frame_services = tk.Frame(root, padx=50, pady=30)
 frame_services.grid(row=1, column=2)
 service_label = SectionLabel(frame_services, 'Services')
 
-
+disableDistractions()
 # testing images
 
 # photo_label = PhotoImageLabel(root, image='energy.png')
