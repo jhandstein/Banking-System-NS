@@ -553,8 +553,8 @@ class PowerDisplay(GameElement):
 # prevents garbage collection of image. source: https://stackoverflow.com/questions/58788728/in-tkinter-is-this-a-good-way-of-avoiding-unwanted-garbage-collection
 class Icon(tk.Label):
     def __init__(self, parent, size=20, **kwargs):
-        image = Image.open(kwargs['image'])
-        self._image = ImageTk.PhotoImage(image.resize((size, size), Image.ANTIALIAS))
+        self.image = Image.open(kwargs['image'])
+        self._image = ImageTk.PhotoImage(self.image.resize((size, size), Image.ANTIALIAS))
 
         kwargs['image'] = self._image
         super().__init__(parent, **kwargs)
