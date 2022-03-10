@@ -2,14 +2,18 @@ from abc import ABC, abstractmethod
 from enums import polishString
 from players import *
 
-
 # transaction base class
 class Transaction(ABC):
+
+    transaction_tracker = list()
+    transaction_count = 0
 
     def __init__(self, amount: int, payer: Player, receiver=p_bank):
         self.amount = amount
         self.payer = payer
         self.receiver = receiver
+        Transaction.transaction_count += 1
+        Transaction.transaction_tracker.append(TransactionLog(Transaction.transaction_count, self))
 
     @abstractmethod
     # must return True for transaction to take place
@@ -38,6 +42,19 @@ class Transaction(ABC):
 
         # this line makes sure that children of Transaction() can add to the requirements of performTransaction
         return True
+    
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.amount}, {self.payer}, {self.receiver})'
+
+# generates instances in Transaction tracker list and has a handy __repr__() for that matter
+class TransactionLog:
+
+    def __init__(self, index, transaction) -> None:
+        self.index = index
+        self.transaction = transaction
+    
+    def __repr__(self):
+        return f'*Transaction #{self.index}\nType: {self.transaction.__repr__()})'
 
             
 class CashTransaction(Transaction):   
@@ -163,6 +180,17 @@ class PowerTransaction(Transaction):
         super().__init__(amount, payer, receiver=receiver)
         self.power = power
 
+    def checkViability(self):
+        if super().checkViability() is False:
+            return False
+        
+        if self.compareEnergyValues() is False:
+            return False
+
+        print('Viable for purchase!')
+        return True
+    
+    # separated from checkViability for the sake of clarity
     def compareEnergyValues(self):
 
         if self.power.subtype == PowerType.GREEN:
@@ -179,16 +207,6 @@ class PowerTransaction(Transaction):
                     print('Insufficient Energy for Transaction.')
                     return False
     
-    def checkViability(self):
-        if super().checkViability() is False:
-            return False
-        
-        if self.compareEnergyValues() is False:
-            return False
-
-        print('Viable for purchase!')
-        return True
-
     def performTransaction(self, check):
         if super().performTransaction(check) == True:
 
@@ -213,12 +231,10 @@ class PowerTransaction(Transaction):
 # test = PowerTransaction(test_power, 300, p_clam)
 
 # test.performTransaction(test.checkViability())
-##
 
 # power_transfer = PowerTransaction(Power(values=[3,1,0], subtype=PowerType.FOSSIL), 100, p_edisonair, receiver=p_clam)
 # huch = power_transfer.checkViability()
 # power_transfer.performTransaction(huch)
-
 # new_power_transfer = PowerTransaction(Power(values=[5,0,0], subtype=PowerType.FOSSIL), 100, p_edisonair, receiver=p_clam)
 # new_power_transfer.compareEnergyValues()
 
@@ -238,7 +254,6 @@ class PowerTransaction(Transaction):
 # test3 = AssetTransaction(coal1, 500, p_edisonair, p_clam)
 # test4 = AssetTransaction(coal1, 500, p_sunsociety, p_bank)
 # test_service = ServiceTransaction(home_ins, 500, p_agrosmart)
-
 
 # p_clam.initializeSupply()
 # test3.performTransaction(test3.checkViability())

@@ -1,5 +1,27 @@
 from enums import PowerType
 
+        
+class Asset:
+
+    all_assets = list()
+
+    def __init__(self, name: str, cost: int, power, central=True):
+        self.name = name
+        self.cost = cost
+        self.power = power
+        self.central = central
+        Asset.all_assets.append(self)
+
+    def __repr__(self):
+        return f'Asset("{self.name}", {self.cost}, {self.power.values[0]}, {self.power.values[1]}, {self.power.values[2]}, {self.power.subtype}, {self.central})'
+
+    def __str__(self):
+        return f'{self.name} -- Cost: {self.cost} -- Supply: {self.power.values} -- Green Energy: {self.power.subtype}'
+    
+    def __eq__(self, other):
+        return self.name == other.name
+
+
 class Power:
 
     # power costs are used to facilitate power transactions between players. not yet implemented
@@ -41,31 +63,16 @@ class PowerBank:
         return Power(total_energy, subtype=PowerType.TOTAL)
         
         
-class Asset:
-
-    def __init__(self, name: str, cost: int, power, central=True):
-        self.name = name
-        self.cost = cost
-        self.power = power
-        self.central = central
-
-    def __repr__(self):
-        return f'Asset("{self.name}", {self.cost}, {self.power.values[0]}, {self.power.values[1]}, {self.power.values[2]}, {self.power.subtype}, {self.central})'
-
-    def __str__(self):
-        return f'{self.name} -- Cost: {self.cost} -- Supply: {self.power.values} -- Green Energy: {self.power.subtype}'
-    
-    def __eq__(self, other):
-        return self.name == other.name
-
-        
 class Service:
-    # quant: 5
+    
+    all_services = list()
 
     def __init__(self, name: str, cost: int, power):
         self.name = name
         self.cost = cost
         self.power = power
+        Service.all_services.append(self)
+        # limit amount of services?
         # Service.quant -= 1
 
     def __repr__(self) -> str:
@@ -115,7 +122,6 @@ solar1 = Asset('Solar 1', 800, Power(values=[8, 0, 0]), central=False)
 geothermal = Asset('Building Geothermal', 1800, Power(values=[0, 6, 0]), central=False)
 blwind = Asset('Bladeless Wind', 1800, Power(values=[0, 0, 5]), central=False)
 solarpv = Asset('Building Integrated PV', 900, Power(values=[6, 0, 0]), central=False)
-
 
 # print(gas1)
 
